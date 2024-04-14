@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "mmteb-wiki"
+version = "0.1.0"
+description = ""
+authors = ["rasdani <73563550+rasdani@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+datasets = "^2.18.0"
+llama-index = "^0.10.29"
+matplotlib = "^3.8.4"
+pandas = "^2.2.2"
+pip = "^24.0"
+ipykernel = "^6.29.4"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
