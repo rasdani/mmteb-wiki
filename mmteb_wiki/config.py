@@ -73,4 +73,3 @@ EMBEDDING_MODEL_CONFIGS = {
         "trust_remote_code": False,
     },
 }
-

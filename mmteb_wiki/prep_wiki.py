@@ -22,13 +22,22 @@ def normalize_url(url):
     normalized_path = urllib.parse.quote(urllib.parse.unquote(parsed_url.path))
     # Reconstruct the URL with the normalized path
     normalized_url = urllib.parse.urlunparse(
-        (parsed_url.scheme, parsed_url.netloc, normalized_path, parsed_url.params, parsed_url.query, parsed_url.fragment)
+        (
+            parsed_url.scheme,
+            parsed_url.netloc,
+            normalized_path,
+            parsed_url.params,
+            parsed_url.query,
+            parsed_url.fragment,
+        )
     )
     return normalized_url
+
 
 def filter_url(url):
     is_in_rank = url in url_to_rank.keys()
     return is_in_rank
+
 
 def map_rank(url):
     qid_and_rank = url_to_rank.get(url, None)

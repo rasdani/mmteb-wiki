@@ -11,7 +11,11 @@ from llama_index.core.evaluation import RetrieverEvaluator, EmbeddingQAFinetuneD
 from typing import Dict, List
 
 from mmteb_wiki.config import EMBEDDING_MODELS
-from mmteb_wiki.utils import load_and_prepare_datasets, create_documents_from_dataset, prepare_embedding_qa_dataset
+from mmteb_wiki.utils import (
+    load_and_prepare_datasets,
+    create_documents_from_dataset,
+    prepare_embedding_qa_dataset,
+)
 
 
 # Load environment variables
@@ -25,48 +29,60 @@ async def evaluate_datasets(ds1, ds2):
     eval_dataset1 = prepare_embedding_qa_dataset(ds1, query_key="question")
     eval_dataset2 = prepare_embedding_qa_dataset(ds2, query_key="query")
 
-    vector_index1 = VectorStoreIndex(create_documents_from_dataset(ds1), show_progress=True)
-    vector_index2 = VectorStoreIndex(create_documents_from_dataset(ds2), show_progress=True)
+    vector_index1 = VectorStoreIndex(
+        create_documents_from_dataset(ds1), show_progress=True
+    )
+    vector_index2 = VectorStoreIndex(
+        create_documents_from_dataset(ds2), show_progress=True
+    )
 
     retriever1 = vector_index1.as_retriever(similarity_top_k=10)
     retriever2 = vector_index2.as_retriever(similarity_top_k=10)
 
-    retrieval_evaluator1 = RetrieverEvaluator.from_metric_names(metric_names=["mrr"], retriever=retriever1)
-    retrieval_evaluator2 = RetrieverEvaluator.from_metric_names(metric_names=["mrr"], retriever=retriever2)
+    retrieval_evaluator1 = RetrieverEvaluator.from_metric_names(
+        metric_names=["mrr"], retriever=retriever1
+    )
+    retrieval_evaluator2 = RetrieverEvaluator.from_metric_names(
+        metric_names=["mrr"], retriever=retriever2
+    )
 
     results1 = await retrieval_evaluator1.aevaluate_dataset(eval_dataset1)
     results2 = await retrieval_evaluator2.aevaluate_dataset(eval_dataset2)
 
     return results1, results2
 
+
 def save_retrieval_results_with_pickle(results, embedding_id):
     dir_path = "results/retrieval"
     file_path = f"{dir_path}/retrieval_results_{embedding_id.replace('/', '_')}.pkl"
-    
+
     os.makedirs(dir_path, exist_ok=True)
-    with open(file_path, 'wb') as file:
+    with open(file_path, "wb") as file:
         pickle.dump(results, file)
-    
+
     print(f"Results saved to {file_path}")
+
 
 def save_results_to_dataframe(avg_mrr1, avg_mrr2, embedding_id):
     dir_path = "retrieval/mrr"
     file_path = f"{dir_path}/cumulative_results_{embedding_id.replace('/', '_')}.csv"
-    
+
     os.makedirs(dir_path, exist_ok=True)
-    
-    new_data = pd.DataFrame({
-        "Model ID": [embedding_id],
-        "MRR Gold Dataset": [avg_mrr1],
-        "MRR Synthetic Queries": [avg_mrr2],
-    })
-    
+
+    new_data = pd.DataFrame(
+        {
+            "Model ID": [embedding_id],
+            "MRR Gold Dataset": [avg_mrr1],
+            "MRR Synthetic Queries": [avg_mrr2],
+        }
+    )
+
     if os.path.exists(file_path):
         existing_data = pd.read_csv(file_path)
         updated_data = pd.concat([existing_data, new_data], ignore_index=True)
     else:
         updated_data = new_data
-    
+
     updated_data.to_csv(file_path, index=False)
     print(f"Results saved to {file_path}")
 
@@ -97,4 +113,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
