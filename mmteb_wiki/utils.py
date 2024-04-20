@@ -4,7 +4,6 @@ from llama_index.core.evaluation import RetrieverEvaluator, EmbeddingQAFinetuneD
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from typing import Dict, List
 
-from mmteb_wiki.config import EMBEDDING_ID, EMBEDDING_CONFIG
 
 
 def load_and_prepare_datasets():
@@ -42,11 +41,11 @@ def prepare_embedding_qa_dataset(
     )
 
 
-def setup_embedding_model():
+def setup_embedding_model(model_id, config):
     Settings.embed_model = HuggingFaceEmbedding(
-        model_name=EMBEDDING_ID,
+        model_name=model_id,
         embed_batch_size=4,
-        query_instruction=EMBEDDING_CONFIG["query_instruction"],
-        text_instruction=EMBEDDING_CONFIG["text_instruction"],
-        trust_remote_code=EMBEDDING_CONFIG["trust_remote_code"],
+        query_instruction=config["query_instruction"],
+        text_instruction=config["text_instruction"],
+        trust_remote_code=config["trust_remote_code"],
     )

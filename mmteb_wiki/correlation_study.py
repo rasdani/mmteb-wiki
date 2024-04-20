@@ -1,3 +1,4 @@
+import time
 import pickle
 import asyncio
 import os
@@ -10,11 +11,12 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.evaluation import RetrieverEvaluator, EmbeddingQAFinetuneDataset
 from typing import Dict, List
 
-from mmteb_wiki.config import EMBEDDING_MODELS
+from mmteb_wiki.config import EMBEDDING_MODELS, EMBEDDING_MODEL_CONFIGS
 from mmteb_wiki.utils import (
     load_and_prepare_datasets,
     create_documents_from_dataset,
     prepare_embedding_qa_dataset,
+    setup_embedding_model,
 )
 
 
@@ -52,8 +54,8 @@ async def evaluate_datasets(ds1, ds2):
     return results1, results2
 
 
-def save_retrieval_results_with_pickle(results, embedding_id):
-    dir_path = "results/retrieval"
+def save_retrieval_results_with_pickle(results, embedding_id, dataset_name):
+    dir_path = f"results/{dataset_name}/retrieval"
     file_path = f"{dir_path}/retrieval_results_{embedding_id.replace('/', '_')}.pkl"
 
     os.makedirs(dir_path, exist_ok=True)
@@ -63,9 +65,9 @@ def save_retrieval_results_with_pickle(results, embedding_id):
     print(f"Results saved to {file_path}")
 
 
-def save_results_to_dataframe(avg_mrr1, avg_mrr2, embedding_id):
-    dir_path = "retrieval/mrr"
-    file_path = f"{dir_path}/cumulative_results_{embedding_id.replace('/', '_')}.csv"
+def save_mrr_results_to_dataframe(avg_mrr1, avg_mrr2, embedding_id, dataset_name):
+    dir_path = f"results/{dataset_name}/mrr"
+    file_path = f"{dir_path}/{embedding_id.replace('/', '_')}.csv"
 
     os.makedirs(dir_path, exist_ok=True)
 
@@ -94,21 +96,29 @@ def calculate_mrr(results1, results2):
     avg_mrr2 = sum(scores2) / len(scores2)
     print(f"Average MRR Score Gold Dataset: {avg_mrr1}")
     print(f"Average MRR Score Synthetic Queries: {avg_mrr2}")
+    return avg_mrr1, avg_mrr2
 
 
 async def main():
-    # ds1, ds2 = load_and_prepare_datasets()
-    # setup_embedding_model()
-    # results1, results2 = await evaluate_datasets(ds1, ds2)
-    # calculate_mrr(results1, results2)
+    dataset_name = "germanrag-positives"
     ds1, ds2 = load_and_prepare_datasets()
+    start = time.time()
     for embedding_id in EMBEDDING_MODELS:
+        run_start = time.time()
         try:
-            results1, results2 = await evaluate_datasets(ds1, ds2, embedding_id)
-            calculate_mrr(results1, results2)
-            save_results((results1, results2), embedding_id)
+            config = EMBEDDING_MODEL_CONFIGS[embedding_id]
+            setup_embedding_model(embedding_id, config)
+            results1, results2 = await evaluate_datasets(ds1, ds2)
+            avg_mrr1, avg_mrr2 = calculate_mrr(results1, results2)
+            save_mrr_results_to_dataframe(avg_mrr1, avg_mrr2, embedding_id, dataset_name)
+            save_retrieval_results_with_pickle(results1, embedding_id, dataset_name)
         except Exception as e:
-            print(f"Error processing {embedding_id}: {e}")
+            raise e
+            # print(f"Error processing {embedding_id}: {e}")
+        run_end = time.time()
+        print(f"Time taken for {embedding_id}: {run_end - run_start} seconds")
+    end = time.time()
+    print(f"Total time taken: {end - start} seconds")
 
 
 if __name__ == "__main__":
