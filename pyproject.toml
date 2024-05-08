@@ -20,6 +20,7 @@ llama-index-embeddings-huggingface = "^0.2.0"
 numpy = "^1.26.4"
 scipy = "^1.13.0"
 seaborn = "^0.13.2"
+ipywidgets = "^8.1.2"
 
 
 [tool.poetry.group.dev.dependencies]
