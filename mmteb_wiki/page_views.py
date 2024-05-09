@@ -1,4 +1,5 @@
 import time
+from tqdm import tqdm
 import pickle
 from multiprocessing import Pool, Manager
 import requests
@@ -64,7 +65,7 @@ def process_pageviews(file_paths):
                         print("ERROR PROCESSING: ", filepath)
     return title_views
 
-def save_results(title_views, lang="de"):
+def save_results(title_views, year, lang="de"):
     dir_path = "data/pageviews_summary"
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -72,30 +73,12 @@ def save_results(title_views, lang="de"):
     #     with open(f"{dir_path}/{lang}.json", "w") as fOut:
     #         fOut.write(json.dumps(views))
 
-    breakpoint()
-    views = title_views[lang]
-    with open(f"{dir_path}/{lang}.json", "w") as fOut:
-        fOut.write(json.dumps(views))
+    # breakpoint()
+    # views = title_views[lang]
+    with open(f"{dir_path}/{lang}_{year}.json", "w") as fOut:
+        fOut.write(json.dumps(title_views))
 
-# def main():
-#     # for year in range(2015, 2025):
-#     #     print("STARTING TO DOWNLOAD YEAR: ", year)
-#     #     download_pageviews(year)
-    
-#     file_paths = []
-#     for year in range(2015, 2025):
-#         for month in range(1, 13):
-#             folder_path = f"data/pageviews/{year}/{year}-{month:02}"
-#             file_paths.extend(glob.glob(f"{folder_path}/*.gz"))
-
-
-#     title_views = process_pageviews(file_paths)
-#     save_results(title_views)
-
-# if __name__ == "__main__":
-#     main()
-
-def combine_results(shared_dict, result, lang="de"):
+def combine_results(shared_dict, result, year, lang="de"):
     # for lang, titles in result.items():
 
     titles = result[lang]
@@ -103,76 +86,80 @@ def combine_results(shared_dict, result, lang="de"):
         # shared_dict[lang] = Manager().dict()
         shared_dict[lang] = {}
     for title, views in titles.items():
-        print("COMBINING: ", title)
+        # print(f"COMBINING YEAR {year}:", title)
         if title not in shared_dict[lang]:
             shared_dict[lang][title] = views
         else:
             shared_dict[lang][title] += views
 
+    return shared_dict
+
 def worker(file_paths):
     return process_pageviews(file_paths)
 
 def main():
-    file_paths = []
-    # years = range(2015, 2025)
-    years = range(2015, 2016)
+    num_processes = 16  # Adjust based on your CPU
+
+    years = range(2015, 2025)
+    # years = range(2015, 2016)
+    # years = range(2015, 2017)
     for year in years:
-        # for month in range(1, 13):
-        for month in range(5, 6):
+        file_paths = []
+        for month in range(1, 13):
+        # for month in range(5, 6):
             folder_path = f"data/pageviews/{year}/{year}-{month:02}"
             file_paths.extend(glob.glob(f"{folder_path}/*.gz"))
 
-    # Number of processes to use
-    num_processes = 16  # Adjust based on your CPU
 
-    # Split file_paths into chunks for each process
-    chunks = [file_paths[i::num_processes] for i in range(num_processes)]
+        # Split file_paths into chunks for each process
+        chunks = [file_paths[i::num_processes] for i in range(num_processes)]
 
-    # Create a multiprocessing pool
-    # with Pool(processes=num_processes) as pool:
-    #     results = pool.map(worker, chunks)
+        # Create a multiprocessing pool
+        with Pool(processes=num_processes) as pool:
+            results = pool.map(worker, chunks)
 
-    with open("data/pageviews/gathered_views.pkl", "rb") as f:
-        results = pickle.load(f)
+        # with open(f"data/pageviews/gathered_views_{year}.pkl", "rb") as f:
+        #     results = pickle.load(f)
 
-    # Pickle results
-    # print("PICKLING RESULTS")
-    # with open("data/pageviews/gathered_views.pkl", "wb") as f:
-    #     pickle.dump(results, f)
+        # Pickle results
+        print(f"PICKLING RESULTS FOR {year}")
+        with open(f"data/pageviews/gathered_views_{year}.pkl", "wb") as f:
+            pickle.dump(results, f)
 
-    # # Combine results from all processes
-    # print("COMBINING RESULTS")
-    # combined_title_views = {}
-    # for result in results:
-    #     for lang in result:
-    #         if lang not in combined_title_views:
-    #             combined_title_views[lang] = {}
-    #         for title, views in result[lang].items():
-    #             print("COMBINING: ", title)
-    #             if title not in combined_title_views[lang]:
-    #                 combined_title_views[lang][title] = views
-    #             else:
-    #                 combined_title_views[lang][title] += views
+        # Create a manager dictionary to store combined results
+        # manager = Manager()
+        # combined_title_views = manager.dict()
+        # print("DICT: ", combined_title_views)
+        # breakpoint()
 
-    # Create a manager dictionary to store combined results
-    manager = Manager()
-    combined_title_views = manager.dict()
+        tick = time.time()
+        # Use a pool to combine results in parallel
+        # with Pool(processes=num_processes) as pool:
+        #     combined_title_views = pool.starmap(combine_results, [(combined_title_views, result, year) for result in results])
 
-    tick = time.time()
-    # Use a pool to combine results in parallel
-    with Pool(processes=num_processes) as pool:
-        pool.starmap(combine_results, [(combined_title_views, result) for result in results])
-    tock = time.time()
-    print("TIME FOR COMBINING: ", tock - tick)
+        
+        combined_title_views = {}
+        for result in tqdm(results):
+            combined_title_views = combine_results(combined_title_views, result, year)
 
-    print("PICKLING COMBINED RESULTS")
-    with open("data/pageviews/combined_views.pkl", "wb") as f:
-        pickle.dump(combined_title_views, f)
+        tock = time.time()
+        # print("DICT: ", combined_title_views)
+        print("TIME FOR COMBINING: ", tock - tick)
 
-    # Save results in parallel
-    # print("SAVING RESULTS")
-    # with Pool(processes=num_processes) as pool:
-    #     pool.starmap(save_results, [(views,) for views in combined_title_views.values()])
+        # # Convert DictProxy to a regular dictionary
+        # if isinstance(combined_title_views, Manager().dict().__class__):
+        #     combined_title_views = dict(combined_title_views)
+
+        print(f"PICKLING COMBINED RESULTS FOR {year}")
+        with open(f"data/pageviews/combined_views_{year}.pkl", "wb") as f:
+            pickle.dump(combined_title_views, f)
+
+        save_results(combined_title_views, year)
+
+        # Save results in parallel
+        # print("SAVING RESULTS")
+        # with Pool(processes=num_processes) as pool:
+        #     pool.starmap(save_results, [(views,) for views in combined_title_views.values()])
 
 if __name__ == "__main__":
     main()
