@@ -43,19 +43,18 @@ def process_pageviews(file_paths):
     return title_views
 
 
-def combine_results(shared_dict, result, year, lang="de"):
-    # for lang, titles in result.items():
-
-    titles = result[lang]
-    if lang not in shared_dict:
-        # shared_dict[lang] = Manager().dict()
-        shared_dict[lang] = {}
-    for title, views in titles.items():
-        # print(f"COMBINING YEAR {year}:", title)
-        if title not in shared_dict[lang]:
-            shared_dict[lang][title] = views
-        else:
-            shared_dict[lang][title] += views
+def combine_results(shared_dict, result, year, languages=["de", "it", "pt", "ru", "uk", "nl", "cs", "ro", "bg", "sr", "fi", "fa", "bn", "hi"]):
+    for lang in languages:
+        titles = result[lang]
+        if lang not in shared_dict:
+            # shared_dict[lang] = Manager().dict()
+            shared_dict[lang] = {}
+        for title, views in titles.items():
+            # print(f"COMBINING YEAR {year} for {lang}:", title)
+            if title not in shared_dict[lang]:
+                shared_dict[lang][title] = views
+            else:
+                shared_dict[lang][title] += views
 
     return shared_dict
 
@@ -94,6 +93,8 @@ def main():
             for result in tqdm(results):
                 combined_title_views = combine_results(combined_title_views, result, year)
 
+            for lang, titles in combined_title_views.items():
+                print(f"{year} {month} for {lang}: {len(titles)} titles")
             # Save combined results for the month
             save_results(combined_title_views, year, month)
             tock = time.time()

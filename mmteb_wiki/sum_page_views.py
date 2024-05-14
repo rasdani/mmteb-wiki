@@ -32,7 +32,7 @@ def aggregate_views(start_year, end_year):
                     total_views[lang][title] += views
             
                 print(f"{filename}")
-                print(total_views[lang]["Berlin"])
+                # print(total_views[lang]["Berlin"])
         
         # Write the aggregated data to a file
         with open(output_path, 'w') as file:
@@ -62,7 +62,7 @@ def aggregate_final_total_views(start_year, end_year):
                 if title not in final_total_views[lang]:
                     final_total_views[lang][title] = 0
                 final_total_views[lang][title] += views
-            print(final_total_views[lang]["Berlin"])
+            # print(final_total_views[lang]["Berlin"])
 
     # Write the final aggregated data to a file
     final_output_path = os.path.join(base_dir, "final_total_views.json")
@@ -71,5 +71,5 @@ def aggregate_final_total_views(start_year, end_year):
     
     print(f"Final aggregated data written to {final_output_path}")
 
-# aggregate_views(2015, 2024)
+aggregate_views(2015, 2024)
 aggregate_final_total_views(2015, 2024)

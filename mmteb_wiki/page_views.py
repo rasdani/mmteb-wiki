@@ -78,19 +78,20 @@ def save_results(title_views, year, lang="de"):
     with open(f"{dir_path}/{lang}_{year}.json", "w") as fOut:
         fOut.write(json.dumps(title_views))
 
-def combine_results(shared_dict, result, year, lang="de"):
+def combine_results(shared_dict, result, year, languages=["de", "it", "pt", "ru", "uk", "nl", "cs", "ro", "bg", "sr", "fi", "fa", "bn", "hi"]):
     # for lang, titles in result.items():
 
-    titles = result[lang]
-    if lang not in shared_dict:
-        # shared_dict[lang] = Manager().dict()
-        shared_dict[lang] = {}
-    for title, views in titles.items():
-        # print(f"COMBINING YEAR {year}:", title)
-        if title not in shared_dict[lang]:
-            shared_dict[lang][title] = views
-        else:
-            shared_dict[lang][title] += views
+    for lang in languages:
+        titles = result[lang]
+        if lang not in shared_dict:
+            # shared_dict[lang] = Manager().dict()
+            shared_dict[lang] = {}
+        for title, views in titles.items():
+            print(f"COMBINING YEAR {year} for {lang}:", title)
+            if title not in shared_dict[lang]:
+                shared_dict[lang][title] = views
+            else:
+                shared_dict[lang][title] += views
 
     return shared_dict
 
@@ -115,16 +116,17 @@ def main():
         chunks = [file_paths[i::num_processes] for i in range(num_processes)]
 
         # Create a multiprocessing pool
-        with Pool(processes=num_processes) as pool:
-            results = pool.map(worker, chunks)
+        # with Pool(processes=num_processes) as pool:
+        #     results = pool.map(worker, chunks)
 
-        # with open(f"data/pageviews/gathered_views_{year}.pkl", "rb") as f:
-        #     results = pickle.load(f)
+        print("LOADING PICKLE FOR", year)
+        with open(f"data/pageviews/gathered_views_{year}.pkl", "rb") as f:
+            results = pickle.load(f)
 
         # Pickle results
-        print(f"PICKLING RESULTS FOR {year}")
-        with open(f"data/pageviews/gathered_views_{year}.pkl", "wb") as f:
-            pickle.dump(results, f)
+        # print(f"PICKLING RESULTS FOR {year}")
+        # with open(f"data/pageviews/gathered_views_{year}.pkl", "wb") as f:
+        #     pickle.dump(results, f)
 
         # Create a manager dictionary to store combined results
         # manager = Manager()
@@ -150,10 +152,11 @@ def main():
         # if isinstance(combined_title_views, Manager().dict().__class__):
         #     combined_title_views = dict(combined_title_views)
 
-        print(f"PICKLING COMBINED RESULTS FOR {year}")
-        with open(f"data/pageviews/combined_views_{year}.pkl", "wb") as f:
-            pickle.dump(combined_title_views, f)
+        # print(f"PICKLING COMBINED RESULTS FOR {year}")
+        # with open(f"data/pageviews/combined_views_{year}.pkl", "wb") as f:
+        #     pickle.dump(combined_title_views, f)
 
+        print("SAVING RESULTS FOR", year)
         save_results(combined_title_views, year)
 
         # Save results in parallel
